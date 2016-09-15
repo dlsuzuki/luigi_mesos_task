@@ -1,3 +1,5 @@
+import json
+import hashlib
 import logging
 
 import luigi
@@ -28,7 +30,11 @@ class MesosTask(luigi.Task):
 
         framework = mesos_pb2.FrameworkInfo()
         framework.user = "" # Have Mesos fill in the current user.
-        framework.name = "Luigi Task"
+
+        param_str = json.dumps(self.to_str_params(only_significant=True), separators=(',', ':'), sort_keys=True)
+        param_hash = hashlib.md5(param_str.encode('utf-8')).hexdigest()
+
+        framework.name = self.task_family + "-" + param_hash
         framework.checkpoint = True
         framework.principal = "luigi-task"
 
