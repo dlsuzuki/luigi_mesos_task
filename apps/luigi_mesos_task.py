@@ -19,6 +19,12 @@ class MesosTask(luigi.Task):
     resources_mem = luigi.FloatParameter()
     env_vars = luigi.DictParameter()
 
+    framework = mesos_pb2.FrameworkInfo()
+    framework.user = "" # Have Mesos fill in the current user.
+    framework.name = "Luigi MesosTask"
+    framework.checkpoint = True
+    framework.principal = "luigi-task"
+
     def run(self):
         logger.info("mesos url: {}".format(self.mesos_url))
         logger.info("required resources (cpus/mem): {}/{}".format(self.resources_cpus, self.resources_mem))
@@ -26,18 +32,13 @@ class MesosTask(luigi.Task):
         logger.info("cmd: {}".format(self.docker_command))
         logger.info("env vars: {}".format(dict(self.env_vars)))
 
-        framework = mesos_pb2.FrameworkInfo()
-        framework.user = "" # Have Mesos fill in the current user.
-        framework.name = "Luigi Task"
-        framework.checkpoint = True
-        framework.principal = "luigi-task"
 
         implicit_acknowledgements = 1
 
         logger.info("starting mesos driver")
         driver = mesos.native.MesosSchedulerDriver(
                 SimpleScheduler(self.docker_image, self.docker_command, self.resources_cpus, self.resources_mem, self.env_vars),
-                framework,
+                self.__class__.framework,
                 self.mesos_url,
                 implicit_acknowledgements)
 
